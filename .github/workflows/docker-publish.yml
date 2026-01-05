@@ -3,6 +3,7 @@ name: Docker Publish Backend
 on:
   push:
     branches: ["main"]
+    tags: ["v*.*.*"]
 
 jobs:
   build-and-push:
@@ -10,6 +11,17 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
+
+      - name: Docker meta
+        id: meta
+        uses: docker/metadata-action@v4
+        with:
+          images: ${{ secrets.DOCKER_USERNAME }}/m5_2-backend
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=ref,event=branch
+            type=sha
 
       - name: Login to Docker Hub
         uses: docker/login-action@v2
@@ -26,9 +38,8 @@ jobs:
           context: ./backend
           file: ./backend/Dockerfile
           push: true
-          tags: |
-            ${{ secrets.DOCKER_USERNAME }}/m5_2-backend:latest
-            ${{ secrets.DOCKER_USERNAME }}/m5_2-backend:${{ github.sha }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
 
       - name: Update Docker Hub Description
         uses: peter-evans/dockerhub-description@v3
